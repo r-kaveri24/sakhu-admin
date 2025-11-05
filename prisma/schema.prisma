@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  password     String
+  createdItems News[]   @relation("createdByNews")
+}
+
+model News {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  summary     String?
+  content     String
+  heroImage   String?
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  creator     User?     @relation("createdByNews", fields: [createdBy], references: [id])
+}
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  name      String
+  role      String?
+  quote     String
+  avatar    String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MediaImage {
+  id        String   @id @default(uuid())
+  key       String
+  url       String
+  width     Int?
+  height    Int?
+  alt       String?
+  caption   String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  galleryId String?
+}
+
+model MediaVideo {
+  id          String      @id @default(uuid())
+  key         String
+  url         String
+  posterKey   String?
+  durationSec Int?
+  resolution  String?
+  createdBy   String?
+  createdAt   DateTime    @default(now())
+  status      MediaStatus @default(UPLOADED)
+}
+
+model Notification {
+  id         String    @id @default(uuid())
+  title      String
+  body       String
+  targetType String?
+  isSent     Boolean   @default(false)
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  USER
+}
+
+enum MediaStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
