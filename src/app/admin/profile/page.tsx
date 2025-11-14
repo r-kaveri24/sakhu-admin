@@ -1,10 +1,13 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import Image from "next/image";
 
 export default function ProfilePage() {
+  const { user, loading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string>("/default-avatar.jpg");
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState("Rahul");
   const [lastName, setLastName] = useState("Sharma");
   const [email, setEmail] = useState("Rahul@123gmail.com");
@@ -15,7 +18,7 @@ export default function ProfilePage() {
   const [country, setCountry] = useState("India");
   const [cityState, setCityState] = useState("Ch. Sambhajinagar, Maharashtra");
   const [pinCode, setPinCode] = useState("123403");
-  const [userId, setUserId] = useState<string>("user_1"); // Default user ID
+  const [userId, setUserId] = useState<string>("");
   
   // Settings
   const [currentPassword, setCurrentPassword] = useState("");
@@ -28,36 +31,22 @@ export default function ProfilePage() {
 
   // Load profile data from localStorage (fallback) or API
   useEffect(() => {
-    loadProfileData();
-  }, []);
+    if (authLoading) return;
+    if (user?.id) {
+      setUserId(user.id);
+      loadProfileData(user.id);
+    }
+  }, [user, authLoading]);
 
-  const loadProfileData = async () => {
+  const loadProfileData = async (id?: string) => {
     try {
-      // Try to load from localStorage first as fallback
-      const savedProfile = localStorage.getItem('userProfile');
-      if (savedProfile) {
-        const profile = JSON.parse(savedProfile);
-        setFirstName(profile.firstName || "Rahul");
-        setLastName(profile.lastName || "Sharma");
-        setEmail(profile.email || "Rahul@123gmail.com");
-        setMobile(profile.mobile || "9988776655");
-        setBio(profile.bio || "Admin");
-        setPosition(profile.position || "Admin");
-        setLocation(profile.location || "Chh. Sambhajinagar, Maharashtra, India");
-        setCountry(profile.country || "India");
-        setCityState(profile.cityState || "Ch. Sambhajinagar, Maharashtra");
-        setPinCode(profile.pinCode || "123403");
-        setProfilePhoto(profile.profilePhoto || "/default-avatar.jpg");
-      }
-
-      // Try to fetch from database API
-      /* Uncomment when database is connected
-      const response = await fetch(`/api/profile?id=${userId}`);
+      if (!id) return;
+      const response = await fetch(`/api/profile?id=${id}`);
       if (response.ok) {
         const data = await response.json();
-        setFirstName(data.firstName);
-        setLastName(data.lastName);
-        setEmail(data.email);
+        setFirstName(data.firstName || "");
+        setLastName(data.lastName || "");
+        setEmail(data.email || "");
         setMobile(data.mobile || "");
         setBio(data.bio || "");
         setPosition(data.position || "");
@@ -67,7 +56,6 @@ export default function ProfilePage() {
         setPinCode(data.pinCode || "");
         setProfilePhoto(data.profilePhoto || "/default-avatar.jpg");
       }
-      */
     } catch (error) {
       console.error('Error loading profile:', error);
     }
@@ -76,6 +64,7 @@ export default function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePhoto(reader.result as string);
@@ -87,53 +76,58 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Save to localStorage as fallback
-      const profileData = {
-        firstName,
-        lastName,
-        email,
-        mobile,
-        bio,
-        position,
-        location,
-        country,
-        cityState,
-        pinCode,
-        profilePhoto,
-      };
-      localStorage.setItem('userProfile', JSON.stringify(profileData));
-
-      // Save to database API
-      /* Uncomment when database is connected
-      const formData = new FormData();
-      formData.append('id', userId);
-      formData.append('firstName', firstName);
-      formData.append('lastName', lastName);
-      formData.append('email', email);
-      formData.append('mobile', mobile);
-      formData.append('bio', bio);
-      formData.append('position', position);
-      formData.append('location', location);
-      formData.append('country', country);
-      formData.append('cityState', cityState);
-      formData.append('pinCode', pinCode);
-      
-      // Convert base64 to file if photo was changed
-      if (profilePhoto && profilePhoto.startsWith('data:')) {
-        const response = await fetch(profilePhoto);
-        const blob = await response.blob();
-        formData.append('profilePhoto', blob, 'profile.jpg');
+      let uploadedPhotoUrl: string | undefined = undefined;
+      if (selectedPhotoFile) {
+        const signRes = await fetch('/api/uploads/sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: selectedPhotoFile.name,
+            fileType: selectedPhotoFile.type,
+            fileSize: selectedPhotoFile.size,
+            uploadType: 'image',
+            feature: 'profile',
+          }),
+        });
+        if (!signRes.ok) {
+          const err = await signRes.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to get upload URL');
+        }
+        const { uploadUrl, publicUrl } = await signRes.json();
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': selectedPhotoFile.type },
+          body: selectedPhotoFile,
+        });
+        if (!putRes.ok) {
+          throw new Error('Failed to upload profile photo');
+        }
+        uploadedPhotoUrl = publicUrl;
       }
 
       const res = await fetch('/api/profile', {
         method: 'PUT',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: userId,
+          firstName,
+          lastName,
+          email,
+          mobile,
+          bio,
+          position,
+          location,
+          country,
+          cityState,
+          pinCode,
+          profilePhoto: uploadedPhotoUrl ?? (profilePhoto?.startsWith('http') ? profilePhoto : null),
+        }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update profile');
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update profile');
       }
-      */
 
       setIsEditing(false);
       alert("Profile updated successfully!");
@@ -158,7 +152,6 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       // Call password change API
-      /* Uncomment when database is connected
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: {
@@ -175,7 +168,6 @@ export default function ProfilePage() {
         const data = await res.json();
         throw new Error(data.error || 'Failed to change password');
       }
-      */
 
       alert("Password changed successfully!");
       setCurrentPassword("");
@@ -191,17 +183,17 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl h-full mx-auto bg-white shadow border p-6 overflow-auto">
+    <div className="max-w-ful h-full mx-auto bg-white rounded-md shadow border p-6 overflow-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">My Profile</h1>
       </div>
 
       {/* Profile Card */}
-      <div className="border border-gray-300 rounded-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+      <div className=" p-6 mb-6">
+        <div className="flex items-center justify-between mb-6 shadow-md rounded-lg p-4">
+          <div className="flex items-center gap-4 ">
+            <div className="relative ">
               <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
@@ -272,7 +264,7 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700  rounded-md cursor-pointer "
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -282,7 +274,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Personal Information */}
-        <div className="mb-6">
+        <div className="mb-6 shadow-md rounded-lg p-4">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Personal Information</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <div>
@@ -354,7 +346,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Address */}
-        <div className="mb-6">
+        <div className="mb-6 shadow-md rounded-lg p-4">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Address</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <div>
@@ -400,7 +392,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Settings Section */}
-        <div>
+        <div className="shadow-md rounded-lg p-4">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Settings</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-gray-200">

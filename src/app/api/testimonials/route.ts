@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireEditor, AuthenticatedRequest } from "@/lib/auth";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import s3Client, { S3_BUCKET } from "@/lib/s3";
+import { jsonWithCors, optionsWithCors } from "@/lib/cors";
 
 // GET /api/testimonials - List testimonials from PostgreSQL
 export async function GET() {
@@ -13,6 +14,7 @@ export async function GET() {
       name: true,
       role: true,
       quote: true,
+      rating: true,
       avatar: true,
       order: true,
       isActive: true,
@@ -20,14 +22,14 @@ export async function GET() {
       updatedAt: true,
     },
   });
-  return NextResponse.json({ items });
+  return jsonWithCors({ items });
 }
 
 // POST /api/testimonials - Create testimonial (expects JSON, image uploaded via presigned URL)
 async function createHandler(request: AuthenticatedRequest) {
   try {
     const body = await request.json();
-    const { name, role, quote, avatarUrl, isActive = true, order = 0 } = body;
+    const { name, role, quote, avatarUrl, rating, isActive = true, order = 0 } = body;
 
     if (!name || !quote) {
       return NextResponse.json({ error: "Name and quote are required" }, { status: 400 });
@@ -38,6 +40,7 @@ async function createHandler(request: AuthenticatedRequest) {
         name,
         role,
         quote,
+        rating: typeof rating === "number" ? rating : 5,
         avatar: avatarUrl,
         isActive,
         order,
@@ -47,6 +50,7 @@ async function createHandler(request: AuthenticatedRequest) {
         name: true,
         role: true,
         quote: true,
+        rating: true,
         avatar: true,
         order: true,
         isActive: true,
@@ -94,3 +98,8 @@ async function deleteHandler(request: AuthenticatedRequest) {
 }
 
 export const DELETE = requireEditor(deleteHandler);
+
+// CORS preflight for website origin
+export function OPTIONS() {
+  return optionsWithCors();
+}

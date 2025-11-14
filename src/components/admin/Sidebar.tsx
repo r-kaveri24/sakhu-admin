@@ -13,14 +13,13 @@ type SidebarProps = {
 };
 
 const defaultItems: NavItem[] = [
+  { href: "/admin/home", label: "Home" },
   { href: "/admin/hero", label: "Hero Section" },
   { href: "/admin/testimonials", label: "Testimonials" },
-  { href: "/admin/news", label: "News Card Section" },
-  { href: "/admin/news-edit", label: "News Editing" },
+  { href: "/admin/news", label: "News" },
   { href: "/admin/team", label: "Team" },
-  { href: "/admin/gallery", label: "Image Gallery" },
-  { href: "/admin/videos", label: "Video Gallery" },
-  { href: "/admin/profile", label: "My Profile" },
+  { href: "/admin/gallery", label: "Photo Gallery" },
+  { href: "/admin/forms", label: "Forms" },
 ];
 
 export default function Sidebar({ items = defaultItems, className = "" }: SidebarProps) {
@@ -38,14 +37,13 @@ export default function Sidebar({ items = defaultItems, className = "" }: Sideba
       <div className="h-16 bg-white flex items-center justify-center">
         <Image src={logo} alt="Logo" width={40} height={40} className="rounded-full" />
       </div>
-      {/* No left padding on the nav list */}
-      <nav className="px-0 pr-2 py-4 flex-1">
+      <nav className="px-0 pr-2 space-y-2 py-4 flex-1">
         {items.map((item) => {
           const active = pathname.startsWith(item.href);
           if (active) {
             return (
-              <div key={item.href} className="relative flex items-center justify-center mb-3 pr-3  bg-white rounded-r-full">
-                <Link href={item.href} className="rounded-full text-[#804499]  font-semibold px-4 py-2">
+              <div key={item.href} className="relative flex items-center justify-between pl-12 mb-3 bg-white rounded-r-full">
+                <Link href={item.href} prefetch={false} className="rounded-full text-[#804499]  font-semibold py-2">
                   {item.label}
                 </Link>
                 {/* White circle beside the active pill */}
@@ -54,7 +52,7 @@ export default function Sidebar({ items = defaultItems, className = "" }: Sideba
             );
           }
           return (
-            <Link key={item.href} href={item.href} className="block py-5 pl-12 text-white/95 hover:bg-white/10 rounded-r-full">
+            <Link key={item.href} href={item.href} prefetch={false} className="block py-2 pl-12 text-white/95 hover:bg-white/10 rounded-r-full">
               {item.label}
             </Link>
           );

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "../src/generated/prisma2"
 }
 
 datasource db {
@@ -16,6 +16,17 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   password     String
+  // Profile fields
+  firstName    String?
+  lastName     String?
+  mobile       String?
+  bio          String?
+  position     String?
+  location     String?
+  country      String?
+  cityState    String?
+  pinCode      String?
+  profilePhoto String?
   createdItems News[]   @relation("createdByNews")
 }
 
@@ -28,6 +39,9 @@ model News {
   heroImage   String?
   isPublished Boolean   @default(false)
   publishedAt DateTime?
+  publishedDay   Int?
+  publishedMonth Int?
+  publishedYear  Int?
   createdBy   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -40,6 +54,7 @@ model Testimonial {
   name      String
   role      String?
   quote     String
+  rating    Int      @default(5)
   avatar    String?
   order     Int      @default(0)
   isActive  Boolean  @default(true)
@@ -94,3 +109,73 @@ enum MediaStatus {
   READY
   FAILED
 }
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  name        String
+  designation String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VolunteerMember {
+  id        String   @id @default(uuid())
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Form submissions captured from the public website
+model DonationSubmission {
+  id           String   @id @default(uuid())
+  name         String
+  email        String?
+  mobile       String?
+  state        String?
+  address      String?
+  adharCardNo  String?
+  panCardNo    String?
+  adharFileUrl String?
+  panFileUrl   String?
+  amount       Int?
+  createdAt    DateTime @default(now())
+}
+
+model ContactSubmission {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  mobile    String?
+  address   String?
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model VolunteerSubmission {
+  id             String   @id @default(uuid())
+  name           String
+  email          String?
+  mobile         String?
+  address        String?
+  occupation     String?
+  areasOfWork    Json?
+  availability   Json?
+  fromTime       String?
+  toTime         String?
+  hoursPerDay    Int?
+  preferredCity  String?
+  createdAt      DateTime @default(now())
+}
+
+// Simple analytics model to record site visits
+model SiteVisit {
+  id         String   @id @default(uuid())
+  page       String?
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime @default(now())
+}
+
+// Password reset functionality removed

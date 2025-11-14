@@ -40,7 +40,11 @@ export default function Page() {
       return;
     }
     const data = await res.json();
-    setItems(data.items || []);
+    const mapped = (data.items || []).map((i: any) => ({
+      ...i,
+      imageUrl: i?.imageUrl ?? i?.avatar ?? undefined,
+    }));
+    setItems(mapped);
   };
 
   useEffect(() => {

@@ -23,10 +23,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const AUTO_LOGIN = process.env.NEXT_PUBLIC_AUTO_LOGIN === 'true';
 
   useEffect(() => {
     // Don't check auth on sign-in page (including nested routes)
     if (pathname?.startsWith('/sign-in')) {
+      setLoading(false);
+      return;
+    }
+    // Dev-only auto login to simplify local UI testing
+    if (AUTO_LOGIN && pathname?.startsWith('/admin')) {
+      const mockUser: User = {
+        id: 'auto-dev',
+        email: 'admin@sakhu.org',
+        name: 'Dev Admin',
+        role: 'ADMIN',
+      };
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      setUser(mockUser);
       setLoading(false);
       return;
     }

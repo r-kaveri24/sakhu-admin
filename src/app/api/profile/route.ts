@@ -46,34 +46,9 @@ export async function GET(request: NextRequest) {
 // PUT - Update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const userId = formData.get('id') as string;
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const email = formData.get('email') as string;
-    const mobile = formData.get('mobile') as string;
-    const bio = formData.get('bio') as string;
-    const position = formData.get('position') as string;
-    const location = formData.get('location') as string;
-    const country = formData.get('country') as string;
-    const cityState = formData.get('cityState') as string;
-    const pinCode = formData.get('pinCode') as string;
-    const profilePhoto = formData.get('profilePhoto') as File | null;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-
-    let profilePhotoUrl: string | undefined;
-    
-    // Handle profile photo upload if provided
-    if (profilePhoto && profilePhoto instanceof File) {
-      const bytes = await profilePhoto.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      profilePhotoUrl = `data:${profilePhoto.type};base64,${buffer.toString('base64')}`;
-    }
-
-    const updateData: any = {
+    const body = await request.json();
+    const {
+      id: userId,
       firstName,
       lastName,
       email,
@@ -84,11 +59,25 @@ export async function PUT(request: NextRequest) {
       country,
       cityState,
       pinCode,
-    };
+      profilePhoto, // Expect an S3 public URL string
+    } = body || {};
 
-    if (profilePhotoUrl) {
-      updateData.profilePhoto = profilePhotoUrl;
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
+
+    const updateData: any = {};
+    if (typeof firstName === 'string') updateData.firstName = firstName;
+    if (typeof lastName === 'string') updateData.lastName = lastName;
+    if (typeof email === 'string') updateData.email = email;
+    if (typeof mobile === 'string') updateData.mobile = mobile;
+    if (typeof bio === 'string' || bio == null) updateData.bio = bio ?? null;
+    if (typeof position === 'string' || position == null) updateData.position = position ?? null;
+    if (typeof location === 'string' || location == null) updateData.location = location ?? null;
+    if (typeof country === 'string' || country == null) updateData.country = country ?? null;
+    if (typeof cityState === 'string' || cityState == null) updateData.cityState = cityState ?? null;
+    if (typeof pinCode === 'string' || pinCode == null) updateData.pinCode = pinCode ?? null;
+    if (typeof profilePhoto === 'string' || profilePhoto == null) updateData.profilePhoto = profilePhoto ?? null;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },

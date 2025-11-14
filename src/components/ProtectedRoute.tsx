@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children, requireRole }: ProtectedRoute
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/sign-in');
+        router.replace('/sign-in');
       } else if (requireRole) {
         // Check role hierarchy: ADMIN > EDITOR > USER
         const roleHierarchy = { ADMIN: 3, EDITOR: 2, USER: 1 };
@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children, requireRole }: ProtectedRoute
         const requiredLevel = roleHierarchy[requireRole];
 
         if (userLevel < requiredLevel) {
-          router.push('/admin/hero'); // Redirect to hero page if insufficient permissions
+          router.replace('/admin/hero'); // Redirect to hero page if insufficient permissions
         }
       }
     }

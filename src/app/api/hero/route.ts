@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonWithCors, optionsWithCors } from "@/lib/cors";
 import { prisma } from "@/lib/prisma";
 import { requireEditor, AuthenticatedRequest } from "@/lib/auth";
 import s3Client, { S3_BUCKET } from "@/lib/s3";
@@ -22,7 +23,12 @@ export async function GET() {
       createdAt: true,
     },
   });
-  return NextResponse.json({ items });
+  return jsonWithCors({ items });
+}
+
+// Preflight support
+export function OPTIONS() {
+  return optionsWithCors();
 }
 
 // POST /api/hero - Create hero image (expects JSON with S3 publicUrl and key)

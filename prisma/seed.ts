@@ -46,6 +46,20 @@ async function main() {
   console.log('│ Email: editor@sakhu.org             │');
   console.log('│ Password: editor123                 │');
   console.log('└─────────────────────────────────────┘');
+
+  // Create requested test user
+  const kaveriPassword = await hash('kaveri123', 10);
+  const kaveri = await prisma.user.upsert({
+    where: { email: 'rautkaveri88@gmail.com' },
+    update: {},
+    create: {
+      email: 'rautkaveri88@gmail.com',
+      name: 'Kaveri',
+      password: kaveriPassword,
+      role: 'EDITOR',
+    },
+  });
+  console.log('✅ Requested user created:', kaveri.email);
 }
 
 main()

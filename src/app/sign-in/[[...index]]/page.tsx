@@ -94,7 +94,7 @@ export default function Page() {
                 />
                 Remember me
               </label>
-              <a href="#" className="hover:text-purple-700">Forgot password?</a>
+            {/* Forgot password link removed per request */}
             </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}

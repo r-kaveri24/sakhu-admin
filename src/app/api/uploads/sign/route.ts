@@ -5,21 +5,19 @@ import { v4 as uuidv4 } from 'uuid';
 import s3Client, { S3_BUCKET, UPLOAD_EXPIRES_IN } from '@/lib/s3';
 import { requireAuth, AuthenticatedRequest } from '@/lib/auth';
 
-// Allowed file types
+// Allowed file types (images only)
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm'];
-const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES];
+const ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES];
 
-// Max file sizes (in bytes)
+// Max file size for images (in bytes)
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 interface SignRequest {
   fileName: string;
   fileType: string;
   fileSize: number;
-  uploadType?: 'image' | 'video';
-  feature?: string; // e.g., 'hero' | 'testimonials' | 'news' | 'gallery_photo' | 'gallery_video'
+  uploadType?: 'image';
+  feature?: string; // e.g., 'hero' | 'testimonials' | 'news' | 'gallery_photo'
   resourceId?: string; // optional id for scoping keys (e.g., testimonialId)
   slug?: string; // optional slug for news
   breakpoint?: 'desktop' | 'tablet' | 'mobile'; // hero images
@@ -46,14 +44,13 @@ async function handlePresign(request: AuthenticatedRequest) {
       );
     }
 
-    // Validate file size
+    // Validate file size (images only)
     const isImage = ALLOWED_IMAGE_TYPES.includes(fileType);
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(fileType);
-    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
+    const maxSize = MAX_IMAGE_SIZE;
 
-    if (fileSize > maxSize) {
+    if (!isImage || fileSize > maxSize) {
       return NextResponse.json(
-        { error: `File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB` },
+        { error: `Only image uploads are allowed. Max size ${maxSize / (1024 * 1024)}MB` },
         { status: 400 }
       );
     }
@@ -71,7 +68,7 @@ async function handlePresign(request: AuthenticatedRequest) {
     
     // Create unique key with optional feature-based foldering
     const uniqueId = uuidv4();
-    let baseFolder = uploadType === 'video' ? 'videos' : 'images';
+    let baseFolder = 'images';
 
     if (feature) {
       switch (feature) {
@@ -94,8 +91,18 @@ async function handlePresign(request: AuthenticatedRequest) {
           baseFolder = `gallery/photos/${year}/${month}/${uniqueId}`;
           break;
         }
-        case 'gallery_video': {
-          baseFolder = `gallery/videos/${year}/${month}/${uniqueId}`;
+        // 'gallery_video' feature removed
+        case 'team': {
+          baseFolder = `team/${year}/${month}`;
+          break;
+        }
+        case 'volunteer': {
+          baseFolder = `volunteer/${year}/${month}`;
+          break;
+        }
+        case 'profile': {
+          const uid = request.user?.userId || 'user';
+          baseFolder = `profile/${uid}/${year}/${month}`;
           break;
         }
         default: {

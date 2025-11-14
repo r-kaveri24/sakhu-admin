@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { jsonWithCors, optionsWithCors } from "@/lib/cors";
 import { prisma } from "@/lib/prisma";
 import { requireEditor, AuthenticatedRequest } from "@/lib/auth";
 import s3Client, { S3_BUCKET } from "@/lib/s3";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { s3KeyFromUrl } from "@/lib/uploadClient";
 
 // GET /api/news - List news from PostgreSQL
 export async function GET() {
@@ -17,126 +19,52 @@ export async function GET() {
       heroImage: true,
       isPublished: true,
       publishedAt: true,
+      publishedDay: true,
+      publishedMonth: true,
+      publishedYear: true,
       createdAt: true,
       updatedAt: true,
     },
   });
-  return NextResponse.json({ items });
+  return jsonWithCors({ items });
 }
 
-// POST /api/news - Create news (expects JSON and optional heroImageUrl)
-async function postHandler(request: AuthenticatedRequest) {
-  try {
-    const body = await request.json();
-    const { title, slug, summary, content, heroImageUrl, isPublished = false } = body;
-
-    if (!title || !content) {
-      return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
-    }
-
-    const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-    const created = await prisma.news.create({
-      data: {
-        title,
-        slug: finalSlug,
-        summary,
-        content,
-        heroImage: heroImageUrl,
-        isPublished,
-        publishedAt: isPublished ? new Date() : null,
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        summary: true,
-        content: true,
-        heroImage: true,
-        isPublished: true,
-        publishedAt: true,
-        createdAt: true,
-      },
-    });
-
-    return NextResponse.json(created, { status: 201 });
-  } catch (error) {
-    console.error("Error creating news:", error);
-    return NextResponse.json({ error: "Failed to create news" }, { status: 500 });
-  }
+// Preflight support
+export function OPTIONS() {
+  return optionsWithCors();
 }
 
-export const POST = requireEditor(postHandler);
-
-// PUT /api/news - Update news by id
-async function putHandler(request: AuthenticatedRequest) {
+// DELETE /api/news?id=... - Delete a news item and its hero image from S3
+export const DELETE = requireEditor(async (request: AuthenticatedRequest) => {
   try {
-    const body = await request.json();
-    const { id, title, slug, summary, content, heroImageUrl, isPublished } = body;
-
+    const id = request.nextUrl.searchParams.get("id");
     if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const updated = await prisma.news.update({
+    const existing = await prisma.news.findUnique({
       where: { id },
-      data: {
-        title,
-        slug,
-        summary,
-        content,
-        heroImage: heroImageUrl,
-        isPublished,
-        publishedAt: typeof isPublished === "boolean" ? (isPublished ? new Date() : null) : undefined,
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        summary: true,
-        content: true,
-        heroImage: true,
-        isPublished: true,
-        publishedAt: true,
-        updatedAt: true,
-      },
+      select: { heroImage: true },
     });
 
-    return NextResponse.json(updated, { status: 200 });
-  } catch (error) {
-    console.error("Error updating news:", error);
-    return NextResponse.json({ error: "Failed to update news" }, { status: 500 });
-  }
-}
-
-export const PUT = requireEditor(putHandler);
-
-// DELETE /api/news?id=UUID&heroImageKey=key - Delete news and optional S3 hero image
-async function deleteHandler(request: AuthenticatedRequest) {
-  const id = request.nextUrl.searchParams.get("id");
-  const heroImageKey = request.nextUrl.searchParams.get("heroImageKey");
-
-  if (!id) {
-    return NextResponse.json({ error: "ID is required" }, { status: 400 });
-  }
-
-  try {
+    // Delete the DB record first
     await prisma.news.delete({ where: { id } });
 
-    if (heroImageKey) {
+    // Then attempt to delete hero image from S3 if present
+    const heroUrl = existing?.heroImage || null;
+    const key = heroUrl ? s3KeyFromUrl(heroUrl) : null;
+    if (key) {
       try {
-        const cmd = new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: heroImageKey });
-        await s3Client.send(cmd);
-      } catch (e) {
-        console.warn("S3 delete failed:", e);
+        await s3Client.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+      } catch (err) {
+        // If S3 deletion fails, we still return success for the DB deletion
+        console.error("Failed to delete hero image from S3", err);
       }
     }
 
-    return NextResponse.json({ message: "Item deleted" }, { status: 200 });
-  } catch (error) {
-    console.error("Error deleting news:", error);
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    console.error("DELETE /api/news error", error);
     return NextResponse.json({ error: "Failed to delete news" }, { status: 500 });
   }
-}
-
-export const DELETE = requireEditor(deleteHandler);
+});

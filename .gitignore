@@ -41,6 +41,23 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+/src/generated/prisma2/
+/src/generated/**/
+
+# test artifacts
+/playwright-report/
+/test-results/
+
+# local uploads (keep folder only)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# editors
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
 
 # clerk configuration (can include secrets)
 /.clerk/
