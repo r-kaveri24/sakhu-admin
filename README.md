@@ -25,14 +25,16 @@ Builds a production‑ready admin panel with authentication, role‑based access
 - E2E tests with Playwright and project scripts for CI readiness
 
 ## 🖼️ Screenshots
+<p>
+  <img src="src/assets/screenshot1.png" alt="Sign-in screen" width="70%" />
+</p>
+<p>
+  <img src="src/assets/screenshot1.png" alt="Homepage screenshot" width="70%" />
+</p>
+<p>
+  <img src="src/assets/screenshot3.png" alt="Homepage screenshot 2" width="70%" />
+</p>
 
-<p>
-  <img src="src/assets/header1.png" alt="Homepage header" width="48%" />
-  <img src="src/assets/header2.png" alt="Homepage header 2" width="48%" />
-</p>
-<p>
-  <img src="src/assets/loginbg.png" alt="Sign-in screen" width="70%" />
-</p>
 
 ## 🧩 Tech Stack
 
@@ -108,11 +110,6 @@ npm run dev
 # Usually http://localhost:3000 (falls back to 3001 if 3000 is busy)
 ```
 
-## 🔑 Default Accounts (from seed)
-
-- Admin: `admin@sakhu.org` / `admin123`
-- Editor: `editor@sakhu.org` / `editor123`
-- Sample Editor: `rautkaveri88@gmail.com` / `kaveri123`
 
 ## 🧪 Testing
 
@@ -144,15 +141,3 @@ Postman collection: `postman/sakhu-admin.postman_collection.json`
 - Mutating endpoints require valid auth; role wrappers enforce access.
 - When deleting records with S3 assets, handlers attempt to delete the S3 object.
 - Upload flow: request presigned URL → PUT file to S3 → store public URL in DB.
-
-## 💼 Why It’s Hire‑Ready
-
-- Real fullstack: SSR APIs + client UI + database + storage
-- Clean, typed code and modular libs; readable handlers and helpers
-- Prisma migrations, seeds, and environment‑driven config suggest production awareness
-- E2E tests and scripts for CI/CD readiness
-- Clear README with screenshots and quick start to accelerate onboarding
-
----
-
-If you’re reviewing this for hiring: I’m comfortable across the stack—designing schemas, building robust APIs, integrating third‑party services (AWS/S3), and crafting pragmatic, maintainable frontends. Happy to walk through any part of the codebase.
