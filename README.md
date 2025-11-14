@@ -26,13 +26,13 @@ Builds a production‑ready admin panel with authentication, role‑based access
 
 ## 🖼️ Screenshots
 <p>
-  <img src="src/assets/Screenshot1.png" alt="Sign-in screen" width="70%" />
+  <img src="src/assets/Screenshot1.png" alt="Sign-in screen" width="100%" />
 </p>
 <p>
-  <img src="src/assets/Screenshot2.png" alt="Homepage screenshot" width="70%" />
+  <img src="src/assets/Screenshot2.png" alt="Homepage screenshot" width="50%" />
 </p>
 <p>
-  <img src="src/assets/Screenshot3.png" alt="Homepage screenshot 2" width="70%" />
+  <img src="src/assets/Screenshot3.png" alt="Homepage screenshot 2" width="50%" />
 </p>
 
 
