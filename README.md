@@ -30,8 +30,6 @@ Builds a production‑ready admin panel with authentication, role‑based access
 </p>
 <p>
   <img src="src/assets/Screenshot2.png" alt="Homepage screenshot" width="50%" />
-</p>
-<p>
   <img src="src/assets/Screenshot3.png" alt="Homepage screenshot 2" width="50%" />
 </p>
 
