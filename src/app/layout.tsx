@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from "next/font/google";
+// Removed Google font fetching to avoid build-time network errors on Vercel
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const robotoMono = Roboto_Mono({
-  variable: "--font-roboto-mono",
-  subsets: ["latin"],
-});
+// Use system fonts via CSS to keep builds deterministic
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -25,9 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${robotoMono.variable} antialiased`}
-      >
+      <body className={`antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
