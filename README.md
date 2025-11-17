@@ -141,3 +141,8 @@ Postman collection: `postman/sakhu-admin.postman_collection.json`
 - Mutating endpoints require valid auth; role wrappers enforce access.
 - When deleting records with S3 assets, handlers attempt to delete the S3 object.
 - Upload flow: request presigned URL → PUT file to S3 → store public URL in DB.
+
+## 📖 Ops Runbook
+- Keepalive Monitoring Runbook: `docs/KEEPALIVE_RUNBOOK.md`
+- API details and scheduler handoff are also documented in `docs/API_README.md` (Keepalive section).
+- Secrets Access & Audit: `docs/KEEPALIVE_SECRET_ACCESS.md`

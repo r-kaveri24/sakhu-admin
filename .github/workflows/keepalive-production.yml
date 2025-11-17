@@ -1,0 +1,44 @@
+name: Keepalive (Production)
+
+on:
+  schedule:
+    # 03:00 Asia/Kolkata == 21:30 UTC previous day
+    - cron: '30 21 * * *'
+  workflow_dispatch:
+
+jobs:
+  call-keepalive:
+    name: Call /internal/keepalive (prod)
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      BASE_URL: ${{ secrets.PRODUCTION_BASE_URL }}
+      KEEPALIVE_AUTH_TOKEN: ${{ secrets.KEEPALIVE_AUTH_TOKEN }}
+    steps:
+      - name: Validate inputs
+        run: |
+          if [ -z "$BASE_URL" ]; then echo 'Missing PRODUCTION_BASE_URL secret'; exit 1; fi
+          if [ -z "$KEEPALIVE_AUTH_TOKEN" ]; then echo 'Missing KEEPALIVE_AUTH_TOKEN secret'; exit 1; fi
+      - name: Call keepalive (prod)
+        id: keepalive
+        run: |
+          set -euo pipefail
+          echo "Calling $BASE_URL/internal/keepalive"
+          RES=$(curl -sS -H "Authorization: Bearer $KEEPALIVE_AUTH_TOKEN" "$BASE_URL/internal/keepalive")
+          echo "$RES" | jq . || true
+          STATUS=$(echo "$RES" | jq -r '.status // empty')
+          if [ "$STATUS" != "ok" ]; then
+            echo "Keepalive failed: $RES" >&2
+            exit 1
+          fi
+      - name: Call monitor (prod, optional)
+        run: |
+          set -euo pipefail
+          echo "Calling $BASE_URL/internal/keepalive/monitor"
+          RES=$(curl -sS -H "Authorization: Bearer $KEEPALIVE_AUTH_TOKEN" "$BASE_URL/internal/keepalive/monitor")
+          echo "$RES" | jq . || true
+          STATUS=$(echo "$RES" | jq -r '.status // empty')
+          if [ "$STATUS" != "ok" ]; then
+            echo "Monitor status not ok: $RES" >&2
+            exit 1
+          fi

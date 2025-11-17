@@ -211,3 +211,61 @@ A ready-to-use collection is available at `postman/sakhu-admin.postman_collectio
 ## Data Models
 
 See `prisma/schema.prisma` for model definitions. Key models used here: `User`, `News`, `Testimonial`, `MediaImage`, `MediaVideo`.
+
+## Keepalive Monitoring & Scheduler Handoff
+
+Endpoint
+- URL (production): `https://<your-vercel-host>/internal/keepalive`
+- URL (preview/local): `http://localhost:3000/internal/keepalive`
+
+Required Header
+- `Authorization: Bearer <KEEPALIVE_AUTH_TOKEN>`
+- Secret name: `KEEPALIVE_AUTH_TOKEN`
+- Where to set:
+  - GitHub Actions: Repository → Settings → Security → Secrets and variables → Actions → New secret `KEEPALIVE_AUTH_TOKEN`
+  - GitLab CI: Settings → CI/CD → Variables → Add variable `KEEPALIVE_AUTH_TOKEN`
+  - Vercel/Other Schedulers: use the scheduler’s secret store and reference as a header value
+
+Expected Success Body (contract)
+```json
+{
+  "status": "ok",
+  "timestamp": "<ISO timestamp with timezone offset>",
+  "supabaseStatus": 200,
+  "details": "read success"
+}
+```
+- Notes:
+  - `supabaseStatus` is the final Supabase read status code (200 on success). If Supabase config is missing, `supabaseStatus` may be `0` with `details: "missing_config"`.
+  - On transient 5xx failures, the endpoint performs one short retry with backoff and returns the final status.
+
+Failure Body (contract)
+```json
+{
+  "status": "error",
+  "timestamp": "<ISO+offset>",
+  "code": <http status>,
+  "message": "<reason>"
+}
+```
+
+Recommended Schedule
+- Preferred: every 3 days at `03:00` Asia/Kolkata (IST)
+  - UTC equivalent: `21:30` UTC (previous day)
+  - Cron (UTC, typical): `30 21 */3 * *` (approx. every 3rd day of month)
+- Minimal cadence: at least every 5 days at `03:00` Asia/Kolkata
+  - UTC equivalent: `21:30` UTC
+  - Cron (UTC): `30 21 */5 * *`
+- If your scheduler cannot express “every N days” precisely, use daily at `03:00` Asia/Kolkata (UTC: `30 21 * * *`). The endpoint is rate-limited and lightweight.
+
+Example Scheduler Call (curl)
+```bash
+curl -sS "https://<your-vercel-host>/internal/keepalive" \
+  -H "Authorization: Bearer ${KEEPALIVE_AUTH_TOKEN}"
+```
+
+Acceptance Checklist
+- Scheduler uses the exact header `Authorization: Bearer <KEEPALIVE_AUTH_TOKEN>`.
+- Secret `KEEPALIVE_AUTH_TOKEN` is set in the scheduler’s secret store (not in code).
+- Cron is configured to the agreed cadence (3 days at 03:00 IST, or ≥5 days).
+- Optional: Set monitor threshold `KEEPALIVE_EXPECTED_INTERVAL_SECONDS` (default 300) if using `/internal/keepalive/monitor`.
